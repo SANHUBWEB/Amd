@@ -1,12 +1,463 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AMD Arena Autofill</title><style>
-*{box-sizing:border-box}body{margin:0;background:#eef3fb;color:#172033;font:15px Arial}.wrap{max-width:600px;margin:24px auto;padding:14px}.head{background:#101a33;color:white;padding:20px;border-radius:18px}.head b{font-size:22px}.head p{color:#c5d2e9;font-size:13px}.card{background:white;border:1px solid #dce4f2;border-radius:16px;padding:18px;margin-top:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{font-size:12px;font-weight:bold;color:#43516a}input,select{width:100%;padding:12px;border:1px solid #ccd6e6;border-radius:9px;margin-top:6px;font:14px Arial;background:white}button{width:100%;padding:14px;border:0;border-radius:10px;background:#1262ed;color:white;font-weight:bold;font-size:15px;margin-top:15px}.small{font-size:12px;color:#68758b;line-height:1.5}.status{font-size:13px;color:#087a4c;min-height:20px}.wide{grid-column:1/-1}@media(max-width:480px){.grid{grid-template-columns:1fr}.wrap{margin:0 auto;padding:10px}}</style></head><body><div class="wrap"><div class="head"><b>AMD Arena Autofill</b><p>Enter your AMD account details, then send them to your paired browser.</p></div><div class="card"><h3>AMD account profile</h3><form id="profile" class="grid">
-<label>First Name *<input name="first_name" autocomplete="given-name" required></label><label>Last Name *<input name="last_name" autocomplete="family-name" required></label>
-<label class="wide">E-mail *<input name="email" type="email" autocomplete="email" required></label>
-<label>Preferred Language *<select name="preferred_language" required><option value="">Choose language</option><option>English</option><option>简体中文</option><option>繁體中文</option><option>Français</option><option>Deutsch</option><option>日本語</option><option>한국어</option><option>Português</option><option>Español</option></select></label>
-<label>Location *<select name="location" required><option value="">Choose location</option><option>India</option><option>United States</option><option>United Kingdom</option><option>Canada</option><option>Australia</option><option>Other</option></select></label>
-<div class="wide small">Use your correct details. Do not enter passwords, access tokens, OTPs, payment information or government ID numbers.</div></form><button id="send">Send details to browser</button><p id="status" class="status" role="status"></p></div><div class="card small">Pairing expires after 10 minutes. Review all filled AMD fields and submit the website form yourself. Activation token and password must be entered manually.</div></div>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AMD Arena Autofill</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#eef3fb;color:#172033;font:15px Arial,sans-serif}
+.wrap{max-width:680px;margin:24px auto;padding:14px}
+.head{background:#101a33;color:#fff;padding:20px;border-radius:18px}
+.head b{font-size:22px}.head p{color:#c5d2e9;font-size:13px;line-height:1.5}
+.steps{display:flex;gap:7px;overflow:auto;margin:14px 0}
+.step{min-width:78px;border:1px solid #ccd6e6;background:#fff;border-radius:10px;padding:9px 7px;text-align:center;font-size:11px;font-weight:bold;color:#66748a}
+.step.active{background:#1262ed;color:#fff;border-color:#1262ed}
+.card{background:#fff;border:1px solid #dce4f2;border-radius:16px;padding:18px;margin-top:14px}
+.card h3{margin:0 0 6px}.desc{font-size:12px;color:#68758b;line-height:1.5}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{font-size:12px;font-weight:bold;color:#43516a}
+input,select{width:100%;padding:12px;border:1px solid #ccd6e6;border-radius:9px;margin-top:6px;font:14px Arial;background:#fff}
+button{width:100%;padding:14px;border:0;border-radius:10px;background:#1262ed;color:#fff;font-weight:bold;font-size:15px;margin-top:15px}
+button.secondary{background:#e8eef9;color:#172033}
+button:disabled{opacity:.55}
+.small{font-size:12px;color:#68758b;line-height:1.5}
+.status{font-size:13px;color:#087a4c;min-height:20px;margin:10px 0 0}
+.wide{grid-column:1/-1}
+.notice{background:#fff8e1;border:1px solid #f1df9b;border-radius:10px;padding:11px;font-size:12px;line-height:1.5;color:#684f00;margin-top:12px}
+.linkbtn{display:block;text-decoration:none;text-align:center;padding:14px;border-radius:10px;background:#1262ed;color:#fff;font-weight:bold;margin-top:15px}
+.hidden{display:none}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.check{display:flex;gap:8px;align-items:flex-start;font-weight:normal;font-size:12px;margin-top:12px}
+.check input{width:auto;margin:2px 0 0}
+@media(max-width:480px){
+ .grid{grid-template-columns:1fr}.wrap{margin:0 auto;padding:10px}.row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <b>AMD Arena Autofill</b>
+    <p>Complete the AMD Arena registration flow step by step. Sensitive credentials and verification codes are entered manually on AMD.</p>
+  </div>
+
+  <div class="steps" aria-label="Progress">
+    <div class="step active" data-step="1">STEP 1<br>Account</div>
+    <div class="step" data-step="2">STEP 2<br>Activate</div>
+    <div class="step" data-step="3">STEP 3<br>Verify</div>
+    <div class="step" data-step="4">STEP 4<br>Arena</div>
+    <div class="step" data-step="5">STEP 5<br>Request</div>
+  </div>
+
+  <section class="card panel" id="step1">
+    <h3>Step 1 — AMD Account Creation</h3>
+    <p class="desc">To create an account, complete the AMD form below.</p>
+    <form id="profile" class="grid">
+      <label>First Name *
+        <input name="first_name" autocomplete="given-name" required>
+      </label>
+      <label>Last Name *
+        <input name="last_name" autocomplete="family-name" required>
+      </label>
+      <label class="wide">E-mail *
+        <input name="email" type="email" autocomplete="email" required>
+      </label>
+      <label>Preferred Language *
+        <select name="preferred_language" required>
+          <option value="">Choose language</option>
+          <option>English</option><option>简体中文</option><option>繁體中文</option>
+          <option>Français</option><option>Deutsch</option><option>日本語</option>
+          <option>한국어</option><option>Português</option><option>Español</option>
+        </select>
+      </label>
+      <label>Location *
+        <select name="location" required>
+          <option value="">Choose location</option>
+          <option>India</option><option>United States</option><option>United Kingdom</option>
+          <option>Canada</option><option>Australia</option><option>Other</option>
+        </select>
+      </label>
+      <div class="wide small">By creating an account, you agree to the AMD Terms of Use and Privacy Policy.</div>
+    </form>
+    <button id="send">Save Step 1 Details</button>
+    <p id="status" class="status" role="status"></p>
+  </section>
+
+  <section class="card panel hidden" id="step2">
+    <h3>Step 2 — Activate Your Account</h3>
+    <p class="desc">Please check your e-mail for your AMD account activation message.</p>
+    <div class="notice">Access Token and Password are sensitive credentials. Enter them directly on the official AMD page when requested; this tool does not store or transmit them.</div>
+    <button type="button" onclick="nextStep(3)">Account Activated → Continue</button>
+  </section>
+
+  <section class="card panel hidden" id="step3">
+    <h3>Step 3 — Verify</h3>
+    <p class="desc">Enter the verification code on the official AMD verification page.</p>
+    <div class="notice">Do not send OTP/verification codes to this tool or save them in Firebase.</div>
+    <button type="button" onclick="nextStep(4)">Verified → Continue</button>
+  </section>
+
+  <section class="card panel hidden" id="step4">
+    <h3>Step 4 — AMD Arena</h3>
+    <p class="desc">Open the AMD Arena information page and continue registration.</p>
+    <a class="linkbtn" href="https://www.amd.com/en/partner/browse-by-resource/amd-arena-training/arena-info.html" target="_blank" rel="noopener">Open AMD Arena</a>
+    <button type="button" class="secondary" onclick="nextStep(5)">Not Registered? → Step 5</button>
+  </section>
+
+  <section class="card panel hidden" id="step5">
+    <h3>Step 5 — AMD Arena Access Request</h3>
+    <p class="desc">Complete the AMD Arena Access Request form.</p>
+    <form id="arenaRequest" class="grid">
+      <label>First Name *<input name="arena_first_name" required></label>
+      <label>Last Name *<input name="arena_last_name" required></label>
+      <label class="wide">E-mail *<input name="arena_email" type="email" required></label>
+      <label class="wide">Company Name *<input name="company_name" required></label>
+      <label>Address 1 *<input name="address1" required></label>
+      <label>Address 2<input name="address2"></label>
+      <label>Location *<input name="arena_location" required></label>
+      <label>State/Province *<input name="state" required></label>
+      <label>City *<input name="city" required></label>
+      <label>Postal Code *<input name="postal_code" required></label>
+      <label>Phone *<input name="phone" type="tel" required></label>
+      <label>Job Function *<input name="job_function" required></label>
+      <label>Primary Role *<input name="primary_role" required></label>
+      <label>Store ID<input name="store_id"></label>
+
+      <label class="wide check">
+        <input type="checkbox" name="marketing">
+        <span>I agree to receive marketing communications from AMD.</span>
+      </label>
+
+      <label class="wide check">
+        <input type="checkbox" name="licensee_agree" required>
+        <span>I Agree: Licensee terms/requirements.</span>
+      </label>
+
+      <label class="wide">Please type in your name. *
+        <input name="typed_name" required autocomplete="name">
+      </label>
+    </form>
+
+    <a class="linkbtn" href="https://account.amd.com/en/forms/registration/arena.html?_" target="_blank" rel="noopener">Open AMD Arena Access Request</a>
+    <button id="saveRequest" type="button">Save Non-sensitive Form Details</button>
+    <p id="requestStatus" class="status" role="status"></p>
+  </section>
+
+  <div class="card small">
+    Pairing expires after 10 minutes. Review all filled AMD fields and submit the official AMD forms yourself.
+  </div>
+
+  <section class="card" id="importCard">
+    <h3>Advanced — Import Excel / CSV</h3>
+    <p class="desc">Import your prepared Excel file, review the rows, tick only the records you want, then send only the selected non-sensitive form data.</p>
+
+    <div class="notice">
+      <b>Supported columns:</b> First Name, Last Name, E-mail, Preferred Language, Location,
+      Company Name, Address 1, Address 2, State/Province, City, Postal Code, Phone,
+      Job Function, Primary Role, Store ID, Marketing.
+      <br><br>
+      <b>Do not include:</b> passwords, access tokens, OTP/verification codes, payment details or government ID numbers.
+    </div>
+
+    <div class="row">
+      <button type="button" id="downloadTemplate" class="secondary">Download Excel Template</button>
+      <label style="display:flex;align-items:center;justify-content:center;padding:12px;border:1px dashed #1262ed;border-radius:10px;color:#1262ed;cursor:pointer">
+        <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none">
+        Choose Excel / CSV
+      </label>
+    </div>
+
+    <p id="importStatus" class="status" role="status"></p>
+
+    <div id="importArea" class="hidden">
+      <div class="row" style="margin-top:10px">
+        <button type="button" id="searchRows" class="secondary">Search</button>
+        <button type="button" id="showSelected" class="secondary">Selected Only</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button type="button" id="selectAll" class="secondary">Select All</button>
+        <button type="button" id="clearAll" class="secondary">Clear All</button>
+      </div>
+
+      <input id="rowSearch" type="search" placeholder="Search imported rows..." style="margin:12px 0 0">
+      <div style="overflow:auto;margin-top:12px;border:1px solid #dce4f2;border-radius:10px">
+        <table id="importTable" style="border-collapse:collapse;width:100%;min-width:900px;font-size:12px">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <button type="button" id="sendSelected">Send Selected Data</button>
+      <p id="sendSelectedStatus" class="status" role="status"></p>
+    </div>
+  </section>
+</div>
+
 <script>
-const token=new URLSearchParams(location.search).get("token");
-function dbUrl(){return window.SAN_FIREBASE_DATABASE_URL.replace(/\/+$/,"")+"/pairs/"+encodeURIComponent(token)+"/profile.json"}
-document.getElementById("send").onclick=async()=>{const st=document.getElementById("status"),form=document.getElementById("profile");if(!token){st.textContent="Invalid QR link. Generate a new QR in the extension.";return}if(!window.SAN_FIREBASE_DATABASE_URL||window.SAN_FIREBASE_DATABASE_URL.includes("YOUR-PROJECT")){st.textContent="Firebase setup missing. Check config.js.";return}if(!form.reportValidity())return;const profile=Object.fromEntries(new FormData(form).entries());st.textContent="Sending to Firebase…";try{const r=await fetch(dbUrl(),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(profile)});if(!r.ok)throw new Error("Firebase HTTP "+r.status+" — check Realtime Database Rules");st.textContent="✓ Details sent. Return to your computer and click Auto Fill.";document.getElementById("send").disabled=true}catch(e){st.textContent="Could not send: "+e.message}}
-</script><script src="config.js"></script></body></html>
+const token = new URLSearchParams(location.search).get("token");
+
+function dbUrl(path="profile"){
+  if(!window.SAN_FIREBASE_DATABASE_URL || window.SAN_FIREBASE_DATABASE_URL.includes("YOUR-PROJECT")) return null;
+  return window.SAN_FIREBASE_DATABASE_URL.replace(/\/+$/,"") + "/pairs/" + encodeURIComponent(token || "") + "/" + path + ".json";
+}
+
+function nextStep(n){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.add("hidden"));
+  const panel=document.getElementById("step"+n);
+  if(panel) panel.classList.remove("hidden");
+  document.querySelectorAll(".step").forEach(s=>s.classList.toggle("active", s.dataset.step==String(n)));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+document.getElementById("send").onclick=async()=>{
+  const st=document.getElementById("status"), form=document.getElementById("profile");
+  if(!token){st.textContent="Invalid QR link. Generate a new QR in the extension.";return}
+  if(!dbUrl()){st.textContent="Firebase setup missing. Check config.js.";return}
+  if(!form.reportValidity()) return;
+
+  const profile=Object.fromEntries(new FormData(form).entries());
+  st.textContent="Saving Step 1 details…";
+  try{
+    const r=await fetch(dbUrl("profile"),{
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(profile)
+    });
+    if(!r.ok) throw new Error("Firebase HTTP "+r.status+" — check Realtime Database Rules");
+    st.textContent="✓ Step 1 details saved.";
+    document.getElementById("send").disabled=true;
+    nextStep(2);
+  }catch(e){
+    st.textContent="Could not save: "+e.message;
+  }
+};
+
+document.getElementById("saveRequest").onclick=async()=>{
+  const st=document.getElementById("requestStatus"), form=document.getElementById("arenaRequest");
+  if(!form.reportValidity()) return;
+  const data=Object.fromEntries(new FormData(form).entries());
+  delete data.licensee_agree; // only used as local confirmation
+  st.textContent="Saving non-sensitive form details…";
+
+  if(!dbUrl()){
+    st.textContent="✓ Form checked. Firebase is not configured on this page.";
+    return;
+  }
+  try{
+    const r=await fetch(dbUrl("arena_request"),{
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(data)
+    });
+    if(!r.ok) throw new Error("Firebase HTTP "+r.status);
+    st.textContent="✓ Non-sensitive Arena request details saved. Submit the official AMD form yourself.";
+    document.getElementById("saveRequest").disabled=true;
+  }catch(e){
+    st.textContent="Could not save: "+e.message;
+  }
+};
+
+/* Advanced Excel/CSV import */
+const allowedImportFields = [
+  "First Name","Last Name","E-mail","Preferred Language","Location",
+  "Company Name","Address 1","Address 2","State/Province","City",
+  "Postal Code","Phone","Job Function","Primary Role","Store ID","Marketing"
+];
+
+let importedRows = [];
+
+function normalizeHeader(s){
+  return String(s ?? "").trim().toLowerCase()
+    .replace(/[_-]+/g," ")
+    .replace(/\s+/g," ");
+}
+
+function mapHeader(h){
+  const n = normalizeHeader(h);
+  const aliases = {
+    "first name":"First Name","firstname":"First Name",
+    "last name":"Last Name","lastname":"Last Name",
+    "email":"E-mail","e mail":"E-mail","e-mail":"E-mail",
+    "preferred language":"Preferred Language","language":"Preferred Language",
+    "location":"Location","company name":"Company Name","company":"Company Name",
+    "address 1":"Address 1","address1":"Address 1",
+    "address 2":"Address 2","address2":"Address 2",
+    "state/province":"State/Province","state":"State/Province","province":"State/Province",
+    "city":"City","postal code":"Postal Code","pincode":"Postal Code","zip":"Postal Code",
+    "phone":"Phone","mobile":"Phone",
+    "job function":"Job Function","primary role":"Primary Role","store id":"Store ID",
+    "marketing":"Marketing","marketing communications":"Marketing"
+  };
+  return aliases[n] || null;
+}
+
+function convertRows(raw){
+  return raw.map(row=>{
+    const out={};
+    Object.keys(row).forEach(k=>{
+      const field=mapHeader(k);
+      if(field) out[field]=String(row[k] ?? "").trim();
+    });
+    return out;
+  }).filter(r=>Object.values(r).some(v=>v));
+}
+
+let importFilter = "";
+let selectedOnly = false;
+
+function renderImportTable(){
+  const area=document.getElementById("importArea");
+  const th=document.querySelector("#importTable thead");
+  const tb=document.querySelector("#importTable tbody");
+  th.innerHTML=""; tb.innerHTML="";
+  if(!importedRows.length){area.classList.add("hidden");return;}
+  area.classList.remove("hidden");
+
+  const trh=document.createElement("tr");
+  ["Send","Actions",...allowedImportFields].forEach(k=>{
+    const thx=document.createElement("th");
+    thx.textContent=k;
+    thx.style.cssText="padding:9px;border-bottom:1px solid #dce4f2;background:#f5f8fd;white-space:nowrap;text-align:left";
+    trh.appendChild(thx);
+  });
+  th.appendChild(trh);
+
+  importedRows.forEach((row,i)=>{
+    const searchText=Object.values(row).join(" ").toLowerCase();
+    if(importFilter && !searchText.includes(importFilter)) return;
+    if(selectedOnly && !row.__selected) return;
+
+    const tr=document.createElement("tr");
+
+    const td=document.createElement("td");
+    td.style.cssText="padding:7px;border-bottom:1px solid #edf1f7";
+    const cb=document.createElement("input");
+    cb.type="checkbox"; cb.className="rowCheck"; cb.dataset.index=i; cb.checked=!!row.__selected;
+    cb.onchange=()=>{row.__selected=cb.checked;};
+    td.appendChild(cb); tr.appendChild(td);
+
+    const actions=document.createElement("td");
+    actions.style.cssText="padding:7px;border-bottom:1px solid #edf1f7;white-space:nowrap";
+    const edit=document.createElement("button");
+    edit.textContent="Edit"; edit.type="button"; edit.className="secondary";
+    edit.style.cssText="width:auto;padding:7px 10px;margin:0 5px 0 0;font-size:12px";
+    edit.onclick=()=>editImportRow(i);
+    const del=document.createElement("button");
+    del.textContent="Delete"; del.type="button"; del.className="secondary";
+    del.style.cssText="width:auto;padding:7px 10px;margin:0;font-size:12px";
+    del.onclick=()=>{if(confirm("Delete this imported row?")){importedRows.splice(i,1);renderImportTable();}};
+    actions.appendChild(edit); actions.appendChild(del); tr.appendChild(actions);
+
+    allowedImportFields.forEach(k=>{
+      const t=document.createElement("td");
+      t.textContent=row[k] || "";
+      t.style.cssText="padding:7px;border-bottom:1px solid #edf1f7;white-space:nowrap";
+      tr.appendChild(t);
+    });
+    tb.appendChild(tr);
+  });
+}
+
+function editImportRow(i){
+  const row=importedRows[i];
+  const field=prompt("Field to edit:\\n"+allowedImportFields.join(", "), "E-mail");
+  if(!field || !allowedImportFields.includes(field)) return;
+  const value=prompt("New value:", row[field] || "");
+  if(value===null) return;
+  row[field]=value.trim();
+  renderImportTable();
+}
+
+document.getElementById("downloadTemplate").onclick=()=>{
+  const rows=[Object.fromEntries(allowedImportFields.map(k=>[k,""]))];
+  const ws=XLSX.utils.json_to_sheet(rows,{header:allowedImportFields});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"AMD Arena Data");
+  XLSX.writeFile(wb,"AMD_Arena_Import_Template.xlsx");
+};
+
+document.getElementById("excelFile").onchange=async(e)=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const st=document.getElementById("importStatus");
+  try{
+    st.textContent="Reading file…";
+    const data=await file.arrayBuffer();
+    const wb=XLSX.read(data,{type:"array"});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(sheet,{defval:""});
+    importedRows=convertRows(raw);
+    if(!importedRows.length) throw new Error("No usable rows found. Use the Excel template.");
+    renderImportTable();
+    st.textContent=`✓ ${importedRows.length} row(s) imported. Tick only the rows you want to send.`;
+  }catch(err){
+    importedRows=[];
+    renderImportTable();
+    st.textContent="Import failed: "+err.message;
+  }
+};
+
+document.getElementById("selectAll").onclick=()=>{
+  importedRows.forEach(x=>x.__selected=true);
+  renderImportTable();
+};
+document.getElementById("clearAll").onclick=()=>{
+  importedRows.forEach(x=>x.__selected=false);
+  renderImportTable();
+};
+
+
+document.getElementById("rowSearch").oninput=(e)=>{
+  importFilter=e.target.value.trim().toLowerCase();
+  renderImportTable();
+};
+document.getElementById("searchRows").onclick=()=>{
+  document.getElementById("rowSearch").focus();
+};
+document.getElementById("showSelected").onclick=(e)=>{
+  selectedOnly=!selectedOnly;
+  e.currentTarget.textContent=selectedOnly ? "Show All" : "Selected Only";
+  renderImportTable();
+};
+
+document.getElementById("sendSelected").onclick=async()=>{
+  const st=document.getElementById("sendSelectedStatus");
+  const selected=importedRows.filter(x=>x.__selected).map(x=>{
+    const clean={...x};
+    delete clean.__selected;
+    return clean;
+  });
+  if(!selected.length){st.textContent="Select at least one row.";return;}
+  if(!token){st.textContent="Invalid QR link. Generate a new QR in the extension.";return;}
+  if(!dbUrl()){st.textContent="Firebase setup missing. Check config.js.";return;}
+
+  st.textContent=`Sending ${selected.length} selected row(s)…`;
+  try{
+    const results=[];
+    for(let i=0;i<selected.length;i++){
+      const row=selected[i];
+      const id="import_"+Date.now()+"_"+i;
+      const r=await fetch(dbUrl("imports/"+id),{
+        method:"PUT",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          ...row,
+          imported_at:new Date().toISOString(),
+          source:"excel_or_csv"
+        })
+      });
+      if(!r.ok) throw new Error("Firebase HTTP "+r.status);
+      results.push(row);
+    }
+    st.textContent=`✓ ${results.length} selected row(s) sent successfully.`;
+  }catch(err){
+    st.textContent="Send failed: "+err.message;
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+</body>
+</html>
